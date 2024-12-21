@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # Dịch vụ PHP-FPM (app)
+  app:
+    build:
+      context: .  # Thư mục gốc dự án
+      dockerfile: Dockerfile  # File Dockerfile để build
+    container_name: interior_app
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html:rw  # Ánh xạ mã nguồn
+    networks:
+      - laravel
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - APP_KEY=base64:KwwZ1/rjBdSnwrJMVJbGdCYfx9mBirekNixRtKxs3Gg=  # Thay thế bằng APP_KEY thật
+    restart: always
+
+  # Dịch vụ Nginx
+  nginx:
+    image: nginx:alpine
+    container_name: interior_nginx
+    ports:
+      - "8000:80"  # Truy cập ứng dụng tại http://localhost:8000
+    volumes:
+      - .:/var/www/html:ro  # Chỉ đọc mã nguồn
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro  # Cấu hình Nginx
+    depends_on:
+      - app  # Đảm bảo PHP-FPM khởi chạy trước
+    networks:
+      - laravel
+    restart: always
+
+  # Dịch vụ MySQL
+  db:
+    image: mysql:8.0
+    container_name: interior_db
+    environment:
+      MYSQL_DATABASE: interior  # Tên database
+      MYSQL_USER: dangdh  # Tên người dùng
+      MYSQL_PASSWORD: secret  # Mật khẩu người dùng
+      MYSQL_ROOT_PASSWORD: root  # Mật khẩu root
+    volumes:
+      - db_data:/var/lib/mysql  # Lưu dữ liệu MySQL
+    networks:
+      - laravel
+    ports:
+      - "3306:3306"  # Ánh xạ cổng 3306 của MySQL container ra ngoài
+    restart: always
+
+# Các mạng Docker để kết nối các container
+networks:
+  laravel:
+
+# Các volume cho MySQL
+volumes:
+  db_data:
